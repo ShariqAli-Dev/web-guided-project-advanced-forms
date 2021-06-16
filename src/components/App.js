@@ -6,6 +6,8 @@ import FriendForm from './FriendForm'
 // 🔥 STEP 3- FLESH THE SCHEMA IN ITS OWN FILE
 // 🔥 STEP 4- IMPORT THE SCHEMA, AXIOS AND YUP
 import axios from 'axios'
+import schema from '../validation/formSchema'
+import * as yup from 'yup'
 
 
 //////////////// INITIAL STATES ////////////////
@@ -74,11 +76,19 @@ export default function App() {
       })
   }
 
+  const validate = (name, value) => {
+    yup.reach(schema, name)
+      .validate(value)
+      .then(() => setFormErrors({ ...formErrors, [name]: ''}))
+      .catch(err => setFormErrors({ ...formErrors, [name]: err.errors[0] }))
+  }
+
   //////////////// EVENT HANDLERS ////////////////
   //////////////// EVENT HANDLERS ////////////////
   //////////////// EVENT HANDLERS ////////////////
   const inputChange = (name, value) => {
     // 🔥 STEP 10- RUN VALIDATION WITH YUP
+    validate(name, value)
     setFormValues({
       ...formValues,
       [name]: value // NOT AN ARRAY
@@ -107,7 +117,8 @@ export default function App() {
 
   useEffect(() => {
     // 🔥 STEP 9- ADJUST THE STATUS OF `disabled` EVERY TIME `formValues` CHANGES
-  }, [])
+    schema.isValid(formValues).then(valid => setDisabled(!valid))
+  }, [formValues])
 
   return (
     <div className='container'>
