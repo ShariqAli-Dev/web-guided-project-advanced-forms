@@ -8,6 +8,7 @@ import FriendForm from "./FriendForm";
 import schema from "../validation/formSchema";
 import Axios from "axios";
 import * as yup from "yup";
+import { validate } from "graphql";
 
 //////////////// INITIAL STATES ////////////////
 //////////////// INITIAL STATES ////////////////
@@ -64,7 +65,7 @@ export default function App() {
     //    and regardless of success or failure, the form should reset
     Axios.post("http://buddies.com/api/friends", newFriend)
       .then((res) => {
-        setFriends([...friends, res.data]);
+        setFriends([...friends, res.data]); //do not do this on auto
       })
       .catch((err) => {
         debugger;
@@ -74,11 +75,34 @@ export default function App() {
       });
   };
 
+  const validate = (name, value) => {
+    // let's validate the specific key/value
+    yup
+      .reach(schema, name)
+      // we can then run validate using the value
+      .validate(value)
+      // if validation is succesful, we can clear the error message
+      .then((valid) => {
+        setFormErrors({
+          ...formErrors,
+          [name]: "",
+        });
+      })
+      /* if the validation is unsuccesful, we can set the error message to the message returned from yup (that we created in our schema) */
+      .catch((err) => {
+        setFormErrors({
+          ...formErrors,
+          [name]: err.errors[0],
+        });
+      });
+  };
+
   //////////////// EVENT HANDLERS ////////////////
   //////////////// EVENT HANDLERS ////////////////
   //////////////// EVENT HANDLERS ////////////////
   const inputChange = (name, value) => {
     // 🔥 STEP 10- RUN VALIDATION WITH YUP
+    validate(name, value);
     setFormValues({
       ...formValues,
       [name]: value, // NOT AN ARRAY
@@ -92,8 +116,10 @@ export default function App() {
       role: formValues.role.trim(),
       civil: formValues.civil.trim(),
       // 🔥 STEP 7- WHAT ABOUT HOBBIES?
+      hobbies: ["coding", "reading", "hiking"].filter((hobby) => formValues[hobby]),
     };
     // 🔥 STEP 8- POST NEW FRIEND USING HELPER
+    postNewFriend(newFriend);
   };
 
   //////////////// SIDE EFFECTS ////////////////
@@ -105,7 +131,10 @@ export default function App() {
 
   useEffect(() => {
     // 🔥 STEP 9- ADJUST THE STATUS OF `disabled` EVERY TIME `formValues` CHANGES
-  }, []);
+    schema.isValid(formValues).then((valid) => {
+      setDisabled(!valid);
+    });
+  }, [formValues]);
 
   return (
     <div className="container">
